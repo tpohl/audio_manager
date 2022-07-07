@@ -171,6 +171,15 @@ public class MediaPlayerService extends Service {
     private RemoteViews views;
 
     private void setupNotification() {
+        Intent intent = new Intent(this, AudioManagerPlugin.class);
+        PendingIntent contentPendingIntent = PendingIntent.getActivity(this, CONTENT_PENDING_REQUESTS, intent, (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) ?
+                                                                                                               PendingIntent.FLAG_MUTABLE :
+                                                                                                               PendingIntent.FLAG_CANCEL_CURRENT);
+
+        // 自定义布局
+        views = new RemoteViews(getPackageName(), R.layout.layout_mediaplayer);
+        // 下一首
+        Intent intentNext = new Intent(ACTION_NEXT);
         // 设置点击通知结果
 //        Intent intent = new Intent("android.flutter.audio_manager.activity");
         PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, NEXT_PENDING_REQUESTS, intentNext,
