@@ -16,6 +16,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
+import android.app.Notification;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -227,7 +228,8 @@ public class MediaPlayerService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel;
             notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
-                    "Notification display", NotificationManager.IMPORTANCE_LOW);
+                    "Trauerfeier Musik", NotificationManager.IMPORTANCE_HIGH);
+            notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             notificationManager.createNotificationChannel(notificationChannel);
         }
 
