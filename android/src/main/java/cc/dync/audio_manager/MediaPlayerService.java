@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
+import android.graphics.drawable.RippleDrawable;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -29,6 +30,7 @@ public class MediaPlayerService extends Service {
     private static final String ACTION_PLAY_OR_PAUSE = "MediaPlayerService_playOrPause";
     private static final String ACTION_STOP = "MediaPlayerService_stop";
     private static final String NOTIFICATION_CHANNEL_ID = "MediaPlayerService_1100";
+    private static final String NOTIFICATION_TAG = "MediaPlayerServiceTag_1234";
 
     @Nullable
     @Override
@@ -40,8 +42,9 @@ public class MediaPlayerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         // 取消Notification
-        if (notificationManager != null)
+        if (notificationManager != null) {
             notificationManager.cancel(NOTIFICATION_PENDING_ID);
+        }
         stopForeground(true);
         // 停止服务
         stopSelf();
@@ -89,7 +92,9 @@ public class MediaPlayerService extends Service {
              */
             context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
         } else {
-            if (serviceEvents != null) serviceEvents.onEvents(Events.binder, bindService);
+            if (serviceEvents != null) {
+                serviceEvents.onEvents(Events.binder, bindService);
+            }
         }
 
     }
@@ -147,7 +152,9 @@ public class MediaPlayerService extends Service {
             ServiceBinder binder = (ServiceBinder) service;
             bindService = (MediaPlayerService) binder.getService();
             isBindService = true;
-            if (serviceEvents != null) serviceEvents.onEvents(Events.binder, bindService);
+            if (serviceEvents != null) {
+                serviceEvents.onEvents(Events.binder, bindService);
+            }
         }
 
         /**
@@ -165,70 +172,48 @@ public class MediaPlayerService extends Service {
     private static final int NEXT_PENDING_REQUESTS = 1024;
     private static final int PLAY_PENDING_REQUESTS = 1025;
     private static final int STOP_PENDING_REQUESTS = 1026;
+    private static final int PREV_PENDING_REQUESTS = 1027;
     private static final int NOTIFICATION_PENDING_ID = 1;
 
     private NotificationManager notificationManager;
     private NotificationCompat.Builder builder;
-    private RemoteViews views;
 
     private void setupNotification() {
         Intent intent = new Intent(this, AudioManagerPlugin.class);
-        PendingIntent contentPendingIntent = PendingIntent.getActivity(this, CONTENT_PENDING_REQUESTS, intent, (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) ?
-                                                                                                               PendingIntent.FLAG_MUTABLE :
-                                                                                                               PendingIntent.FLAG_CANCEL_CURRENT);
-
-        // 自定义布局
-        views = new RemoteViews(getPackageName(), R.layout.layout_mediaplayer);
-        // 下一首
-        Intent intentNext = new Intent(ACTION_NEXT);
-        // 设置点击通知结果
-//        Intent intent = new Intent("android.flutter.audio_manager.activity");
-        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, NEXT_PENDING_REQUESTS, intentNext,
-                                                                     (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) ?
-                                                                     PendingIntent.FLAG_MUTABLE :
-                                                                     PendingIntent.FLAG_CANCEL_CURRENT
-        );
-        views.setOnClickPendingIntent(R.id.iv_next, nextPendingIntent);
-
-        // 暂停/播放
-        Intent intentPlay = new Intent(ACTION_PLAY_OR_PAUSE);
-        PendingIntent playPendingIntent = PendingIntent.getBroadcast(this, PLAY_PENDING_REQUESTS, intentPlay,
-                                                                     (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) ?
-                                                                     PendingIntent.FLAG_MUTABLE :
-                                                                     PendingIntent.FLAG_CANCEL_CURRENT
-        );
-        views.setOnClickPendingIntent(R.id.iv_pause, playPendingIntent);
+        PendingIntent contentPendingIntent = PendingIntent.getActivity(this, CONTENT_PENDING_REQUESTS, intent, getIntentFlags());
 
         // 停止
         Intent intentStop = new Intent(ACTION_STOP);
         PendingIntent stopPendingIntent = PendingIntent.getBroadcast(this, STOP_PENDING_REQUESTS, intentStop,
-                                                                     (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) ?
-                                                                     PendingIntent.FLAG_MUTABLE :
-                                                                     PendingIntent.FLAG_CANCEL_CURRENT
+                                                                     getIntentFlags()
         );
 
+        androidx.media.app.NotificationCompat.MediaStyle style = new androidx.media.app.NotificationCompat.MediaStyle();
+        style.setShowActionsInCompactView(0,1,2);
+
         builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                // 设置状态栏小图标
-                .setSmallIcon(R.drawable.ic_launcher)
-                // 设置标题
-                .setContentTitle("")
-                // 设置内容
-                .setContentText("")
-                // 点击通知后自动清除
-                .setAutoCancel(false)
-                // 设置点击通知效果
-                .setContentIntent(contentPendingIntent)
-                // 设置删除时候出发的动作
-//                .setDeleteIntent(delPendingIntent)
-                // 自定义视图
-                .setContent(views);
+            // 设置状态栏小图标
+            .setSmallIcon(R.drawable.ic_player_icon)
+            // 设置标题
+            .setContentTitle("")
+            // 设置内容
+            .setContentText("")
+            .setStyle(style)
+            .setAutoCancel(false)
+            .setShowWhen(false)
+            .setSilent(true)
+            // 设置点击通知效果
+            .setContentIntent(contentPendingIntent)
+
+        ;
+        updateNotificationBuilder(false, "", "");
 
         // 获取NotificationManager实例
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel;
             notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
-                    "Trauerfeier Musik", NotificationManager.IMPORTANCE_HIGH);
+                                                          "Trauerfeier Musik", NotificationManager.IMPORTANCE_DEFAULT);
             notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             notificationManager.createNotificationChannel(notificationChannel);
         }
@@ -237,28 +222,52 @@ public class MediaPlayerService extends Service {
         startForeground(NOTIFICATION_PENDING_ID, builder.build());
     }
 
+    private int getIntentFlags() {
+        return (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) ?
+               PendingIntent.FLAG_MUTABLE :
+               PendingIntent.FLAG_CANCEL_CURRENT;
+    }
+
     void updateCover(Bitmap bitmap) {
-        views.setImageViewBitmap(R.id.image, bitmap);
+        builder.setLargeIcon(bitmap);
         notificationManager.notify(NOTIFICATION_PENDING_ID, builder.build());
     }
 
-    void updateCover(int srcId) {
-        views.setImageViewResource(R.id.image, srcId);
-    }
+
 
     // 更新Notification
     void updateNotification(boolean isPlaying, String title, String desc) {
-        if (views != null) {
-            views.setTextViewText(R.id.tv_name, title);
-            if (desc != null) views.setTextViewText(R.id.tv_author, desc);
-            if (isPlaying) {
-                views.setImageViewResource(R.id.iv_pause, android.R.drawable.ic_media_pause);
-            } else {
-                views.setImageViewResource(R.id.iv_pause, android.R.drawable.ic_media_play);
-            }
-        }
+
+
+        updateNotificationBuilder(isPlaying, title, desc);
 
         // 刷新notification
         notificationManager.notify(NOTIFICATION_PENDING_ID, builder.build());
+    }
+
+    private void updateNotificationBuilder(boolean isPlaying, String title, String desc) {
+        Intent intentPlay = new Intent(ACTION_PLAY_OR_PAUSE);
+        PendingIntent playPendingIntent = PendingIntent.getBroadcast(this, PLAY_PENDING_REQUESTS, intentPlay, getIntentFlags());
+
+        Intent intentNext = new Intent(ACTION_NEXT);
+        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, NEXT_PENDING_REQUESTS, intentNext, getIntentFlags());
+
+        Intent intentPrev = new Intent(ACTION_PREVIOUS);
+        PendingIntent prevPendingIntent = PendingIntent.getBroadcast(this, PREV_PENDING_REQUESTS, intentPrev, getIntentFlags());
+
+
+        builder.setContentTitle(title)
+               .setContentText(desc)
+               .clearActions();
+
+        builder.addAction(R.drawable.ic_baseline_skip_previous, "Prev", prevPendingIntent);
+
+        if (isPlaying) {
+            builder.addAction(R.drawable.ic_baseline_pause, "Pause", playPendingIntent);
+        } else {
+            builder.addAction(R.drawable.ic_baseline_play_arrow, "Play", playPendingIntent);
+        }
+
+        builder.addAction(R.drawable.ic_baseline_skip_next, "Next", nextPendingIntent);
     }
 }

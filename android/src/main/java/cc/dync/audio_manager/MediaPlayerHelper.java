@@ -353,7 +353,7 @@ public class MediaPlayerHelper {
                 return false;
             }
         } else {
-            Log.v(TAG, "对不起请升级手机系统至Android6.0及以上");
+            Log.v(TAG, "Cannot set speed.");
             return false;
         }
     }
@@ -365,7 +365,7 @@ public class MediaPlayerHelper {
         onStatusCallbackNext(CallBackState.playOrPause, isPlaying());
 
         if (service != null)
-            service.updateNotification(isPlaying(), mediaInfo.title, null);
+            service.updateNotification(isPlaying(), mediaInfo.title, mediaInfo.desc);
     }
 
     void pause() {
@@ -375,7 +375,7 @@ public class MediaPlayerHelper {
         onStatusCallbackNext(CallBackState.playOrPause, isPlaying());
 
         if (service != null)
-            service.updateNotification(isPlaying(), mediaInfo.title, null);
+            service.updateNotification(isPlaying(), mediaInfo.title, mediaInfo.desc);
     }
 
     void playOrPause() {
@@ -388,13 +388,13 @@ public class MediaPlayerHelper {
         onStatusCallbackNext(CallBackState.playOrPause, isPlaying());
 
         if (service != null)
-            service.updateNotification(isPlaying(), mediaInfo.title, null);
+            service.updateNotification(isPlaying(), mediaInfo.title, mediaInfo.desc);
     }
 
     private boolean canPlay() {
         if (!isPrepare) {
-            Log.e(TAG, "媒体资源加载失败");
-            onStatusCallbackNext(CallBackState.error, "媒体资源加载失败");
+            Log.e(TAG, "not prepared");
+            //onStatusCallbackNext(CallBackState.error, "媒体资源加载失败");
         }
         return isPrepare;
     }
