@@ -296,10 +296,11 @@ class AudioManager {
   }
 
   /// stop play
-  stop() {
+  Future<bool> stop() async {
     _reset();
     _initialize = false;
-    _channel.invokeMethod("stop");
+    await _channel.invokeMethod("stop");
+    return false;
   }
 
   _reset() {
