@@ -44,11 +44,17 @@ public class AudioManagerPlugin implements FlutterPlugin, MethodCallHandler, Vol
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-        final MethodChannel channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "audio_manager");
+        final AudioManagerPlugin instance = getInstance();
+        final Context applicationContext = flutterPluginBinding.getApplicationContext();
 
-        channel.setMethodCallHandler(getInstance());
-        setup(flutterPluginBinding.getApplicationContext(), channel);
-        AudioManagerPlugin.flutterAssets = flutterPluginBinding.getFlutterAssets();
+        // This might get called multiple times -> only do this, if the context changed (probably this cannot happen anyway)
+        if (instance.context == null || instance.context != applicationContext || instance.channel == null) {
+            final MethodChannel channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "audio_manager");
+
+            channel.setMethodCallHandler(getInstance());
+            setup(flutterPluginBinding.getApplicationContext(), channel);
+            AudioManagerPlugin.flutterAssets = flutterPluginBinding.getFlutterAssets();
+        }
     }
 
     // This static function is optional and equivalent to onAttachedToEngine. It

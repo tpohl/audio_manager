@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:logger/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:audio_manager/src/AudioType.dart';
 import 'package:audio_manager/src/AudioInfo.dart';
@@ -8,8 +9,19 @@ import 'package:audio_manager/src/AudioInfo.dart';
 export 'package:audio_manager/src/AudioInfo.dart';
 export 'package:audio_manager/src/AudioType.dart';
 
+var logger = Logger(
+  printer: PrettyPrinter(
+    lineLength: 90,
+    colors: false,
+    methodCount: 1,
+    errorMethodCount: 5,
+  ),
+);
+
+
 class AudioManager {
   static AudioManager? _instance;
+
   static AudioManager get instance => _getInstance();
 
   static _getInstance() {
@@ -88,6 +100,7 @@ class AudioManager {
   AudioInfo? _info;
 
   Future<dynamic> _handler(MethodCall call) {
+    logger.d('Method Handler called with method ${call.method}');
     switch (call.method) {
       case "ready":
         _isLoading = false;
@@ -156,7 +169,10 @@ class AudioManager {
     if (_error != null) errMsg = _error!;
     if (_isLoading) errMsg = "audio resource loading....";
 
-    if (errMsg.isNotEmpty) _onEvents(AudioManagerEvents.error, errMsg);
+    if (errMsg.isNotEmpty) {
+      _onEvents(AudioManagerEvents.error, errMsg);
+      logger.w('Error Messages are present ${errMsg}');
+    }
     return errMsg;
   }
 
@@ -348,7 +364,10 @@ class AudioManager {
   AudioInfo _initRandom() {
     if (playMode == PlayMode.shuffle) {
       if (_randoms.length != _audioList.length) {
-        _randoms = _audioList.asMap().keys.toList();
+        _randoms = _audioList
+            .asMap()
+            .keys
+            .toList();
         _randoms.shuffle();
       }
       _curIndex = _randoms[_curIndex];
